@@ -12,6 +12,7 @@ def go(message):
         bot.send_message(message.chat.id, pokemon.info())
         bot.send_photo(message.chat.id, pokemon.show_img())
         bot.send_message(message.chat.id, pokemon.show_img())
+        bot.send_message(message.chat.id, pokemon.skill())
     else:
         bot.reply_to(message, "Ты уже создал себе покемона")
 
