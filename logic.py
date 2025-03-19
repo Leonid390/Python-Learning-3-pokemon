@@ -1,54 +1,98 @@
-import telebot 
-from logic import Wizard, Fighter
-from config import token
 from random import randint
-from logic import Pokemon
-bot = telebot.TeleBot(token) 
+import requests
 
-@bot.message_handler(commands=['go'])
-def go(message):
-    if message.from_user.username not in Pokemon.pokemons.keys():
-        chance = randint(1,2)
-        if chance == 1:
-            pokemon = Wizard(message.from_user.username)
-            a = 'Wizard'
-        elif chance == 2:
-            pokemon = Fighter(message.from_user.username)
-            a = 'Wizard'
-        pokemon = Pokemon(message.from_user.username)
-        bot.send_message(message.chat.id, pokemon.info())
-        bot.send_message(message.chat.id, f'Класс: {a}')
-        bot.send_photo(message.chat.id, pokemon.show_img())
-        #bot.send_message(message.chat.id, pokemon.show_img())
-        #bot.send_message(message.chat.id, pokemon.skill())
-    else:
-        bot.reply_to(message, "Ты уже создал себе покемона")
-            
-@bot.message_handler(commands=['info'])
-def inform(message):
-    if message.from_user.username in Pokemon.pokemons.keys():
-        pokemon = Pokemon(message.from_user.username)
-        bot.send_message(message.chat.id, pokemon.info())
-        bot.send_photo(message.chat.id, pokemon.show_img())
-    else:
-        bot.send_message(message.chat.id, f'У вас нет покемона, сначала получите его')
-    
-@bot.message_handler(commands=['attack'])
-def attack_pok(message):
-    if message.reply_to_message:
-        if message.reply_to_message.from_user.username in Pokemon.pokemons.keys() and message.from_user.username in Pokemon.pokemons.keys():
-            enemy = Pokemon.pokemons[message.reply_to_message.from_user.username]
-            pok = Pokemon.pokemons[message.from_user.username]
-            res = pok.attack(enemy)
-            bot.send_message(message.chat.id, res)
+class Pokemon:
+    pokemons = {}
+    # Инициализация объекта (конструктор)
+    def __init__(self, pokemon_trainer):
+
+        self.hp = randint(12, 24)
+        self.power = randint(3, 6)
+
+        self.pokemon_trainer = pokemon_trainer   
+
+        self.pokemon_number = randint(1,1000)
+        self.img = self.get_img()
+        self.name = self.get_name()
+        #self.navik = self.get_ability_name()
+        
+        Pokemon.pokemons[pokemon_trainer] = self
+
+    # Метод для получения картинки покемона через API
+    def get_img(self):
+        url = f'https://pokeapi.co/api/v2/pokemon/{self.pokemon_number}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            return (data['sprites']['front_default'])
         else:
-            bot.send_message(message.chat.id, "Сражаться можно только с покемонами")
-    else:
-            bot.send_message(message.chat.id, "Чтобы атаковать, нужно ответить на сообщения того, кого хочешь атаковать")
+            return "Pikachu"
 
-@bot.message_handler(commands=['info'])
-def inform(message):
-    bot.send_message(message.chat.id, )
+    
+    # Метод для получения имени покемона через API
+    def get_name(self):
+        url = f'https://pokeapi.co/api/v2/pokemon/{self.pokemon_number}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            return (data['forms'][0]['name'])
+        else:
+            return "Pikachu"
 
-bot.infinity_polling(none_stop=True)
+# метод атаки
+    def attack(self, enemy):
+        if isinstance(enemy, Wizard):
+            if randint(1, 5) == 4:
+                return('Shielded')
+        
+        if enemy.hp > self.power:
+            enemy.hp -= self.power
+            return (f'Сражение с @{self.pokemon_trainer} с @{enemy.pokemon_trainer}\n\n'
+                    f'Здоровье @{enemy.pokemon_trainer} теперь {enemy.hp}') 
+        else:
+            enemy.hp = 0
+            return f'Победа @{self.pokemon_trainer} над @{enemy.pokemon_trainer}'
+
+
+
+
+
+    #def get_type(self):
+     #   url = f'https://pokeapi.co/api/v2/pokemon/{self.pokemon_number}'
+      #  response = requests.get(url)
+       # if response.status_code == 200:
+        #    data = response.json()
+         #   return (data['types']['slot'][1]['type']['name'])
+        #else:
+         #   return "Pikachu"
+
+    #def get_ability_name(self):
+     #   url = f'https://pokeapi.co/api/v2/pokemon/{self.pokemon_number}'
+      #  response = requests.get(url)
+       # if response.status_code == 200:
+        #    data = response.json()
+         #   return (data['abilities'][0]['ability']['name'])
+    # Метод класса для получения информации
+    def info(self):
+        return (f"Имя твоего покеомона: {self.name}\n"
+                f"Здоровье твоего покеомона: {self.hp}\n"
+                f"Сила твоего покеомона: {self.power}")
+    #def skill(self):
+     #   return f"Навыки твоего покеомона: {self.navik}"
+
+    # Метод класса для получения картинки покемона
+    def show_img(self):
+        return self.img
+
+
+class Wizard(Pokemon):
+    pass
+
+class Fighter(Pokemon):
+    def attack(self, enemy):
+        powerfull = randint(2, 6)
+        self.power += powerfull
+        результат = super().attack(enemy)
+        self.power -= powerfull
+        return результат + f"\nБоец применил супер-атаку силой:{powerfull} "
 
